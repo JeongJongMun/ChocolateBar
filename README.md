@@ -3,6 +3,10 @@
 > 61315 게임잼 (2025.02.14 ~ 2025.02.16)
 
 <p align="center">
+  <img src="docs/images/stage.jpg" alt="스테이지 플레이 화면" width="240">
+</p>
+
+<p align="center">
   <a href="https://jeongjongmun.itch.io/chocolate-bar">
     <img src="https://img.shields.io/badge/itch.io-지금%20플레이하기-FA5C5C?style=for-the-badge&logo=itch.io&logoColor=white" alt="itch.io에서 플레이">
   </a>
