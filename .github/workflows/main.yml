@@ -1,46 +1,89 @@
-name: UnityBuildTest
+name: Automated Build
 
 on:
+  # itch.io 업로드용 빌드가 필요할 때 Actions 탭에서 수동으로 실행합니다.
   workflow_dispatch:
 
-permissions: write-all
-  
 jobs:
-  # Job 설정
-  buildForAndroid: 
-    name: Build Android🛸🛸🛸
+  build:
+    name: Build ${{ matrix.targetPlatform }}
     runs-on: ubuntu-latest
-    steps:
+    strategy:
+      # 한쪽이 깨져도 다른 플랫폼 빌드는 끝까지 갑니다.
+      fail-fast: false
+      matrix:
+        targetPlatform: [WebGL, Android]
 
-      # Step1 - Check Out
-      - name: Check Out
+    steps:
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
           lfs: true
 
-      # Step2 - Cache Library
+      # 안드로이드 에디터 이미지가 커서 러너 디스크가 부족해지기 쉽습니다.
+      # 빌드와 무관한 사전 설치 툴체인만 지웁니다.
+      - name: Free disk space
+        if: matrix.targetPlatform == 'Android'
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /usr/share/swift || true
+          df -h /
+
+      # Library는 플랫폼마다 임포트 결과가 달라 캐시를 섞으면 안 됩니다.
       - name: Cache Library
-        uses: actions/cache@v4.0.2
-        with: 
+        uses: actions/cache@v4
+        with:
           path: Library
-          key: Library-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          key: Library-${{ matrix.targetPlatform }}-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
           restore-keys: |
+            Library-${{ matrix.targetPlatform }}-
             Library-
 
-      # Step3 - Unity Build
-      - name: Unity Build
+      - name: Build project
         uses: game-ci/unity-builder@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
-          targetPlatform: Android
-      
-      # Step4 - Upload Build File
-      - name: Upload Build File
+          targetPlatform: ${{ matrix.targetPlatform }}
+          buildName: ChocolateBar
+          androidExportType: androidPackage # APK 빌드
+
+      # 플랫폼마다 itch.io에 바로 올릴 수 있는 파일 하나만 남깁니다.
+      - name: Package artifact
+        run: |
+          set -euo pipefail
+          sudo chown -R $USER build
+          mkdir -p dist
+
+          case "${{ matrix.targetPlatform }}" in
+            WebGL)
+              # itch.io는 zip 최상단에 index.html이 있어야 HTML 게임으로 인식합니다.
+              INDEX=$(find build/WebGL -name index.html | head -n1)
+              if [ -z "$INDEX" ]; then
+                echo "::error::WebGL 빌드에서 index.html을 찾지 못했습니다"
+                ls -R build/WebGL
+                exit 1
+              fi
+              (cd "$(dirname "$INDEX")" && zip -qr "$GITHUB_WORKSPACE/dist/ChocolateBar-WebGL.zip" .)
+              ;;
+
+            Android)
+              APK=$(find build/Android -name "*.apk" | head -n1)
+              if [ -z "$APK" ]; then
+                echo "::error::Android 빌드에서 apk를 찾지 못했습니다"
+                ls -R build/Android
+                exit 1
+              fi
+              cp "$APK" dist/ChocolateBar-Android.apk
+              ;;
+          esac
+
+          ls -lh dist
+
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Build-Android
-          path: build
+          name: ChocolateBar-${{ matrix.targetPlatform }}
+          path: dist
+          retention-days: 7
