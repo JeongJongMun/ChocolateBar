@@ -3,6 +3,9 @@
 > 61315 게임잼 (2025.02.14 ~ 2025.02.16)
 
 <p align="center">
+  <a href="https://jeongjongmun.itch.io/chocolate-bar">
+    <img src="https://img.shields.io/badge/itch.io-지금%20플레이하기-FA5C5C?style=for-the-badge&logo=itch.io&logoColor=white" alt="itch.io에서 플레이">
+  </a>
   <a href="https://youtube.com/shorts/HTsLonE6lbo">
     <img src="https://img.shields.io/badge/YouTube-플레이%20영상-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="YouTube 플레이 영상">
   </a>
